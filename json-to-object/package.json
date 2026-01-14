@@ -1,12 +1,14 @@
 {
   "name": "json-to-object",
-  "displayName": "JSON to Object Converter",
+  "displayName": "Json to Objects",
   "description": "Convert JSON to type definitions for Python, Rust, C, C++, JavaScript, TypeScript, Java, and Kotlin",
   "version": "0.0.1",
-  "publisher": "YOUR_PUBLISHER_NAME",
+  "publisher": "HyunsooJo",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/json-to-object"
+    "url": "https://github.com/HyunsooZo/ninja-extentions",
+    "directory": "json-to-object"
   },
   "engines": {
     "vscode": "^1.80.0"
@@ -53,6 +55,6 @@
     "kotlin",
     "code generator"
   ],
-  "author": "YOUR_NAME",
+  "author": "HyunsooJo",
   "license": "MIT"
 }

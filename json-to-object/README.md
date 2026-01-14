@@ -8,6 +8,7 @@ VSCode 확장 프로그램으로 JSON을 다양한 언어의 타입 정의로 �
 - **JavaScript** - JSDoc + Class 생성
 - **Python** - Dataclass 생성
 - **Rust** - Struct with Serde 생성
+- **Go** - Struct with JSON tags 생성
 - **C** - Struct 생성
 - **C++** - Class 생성
 - **Java** - Class with Getters/Setters 생성
@@ -71,6 +72,17 @@ pub struct MyObject {
     #[serde(rename = "isActive")]
     pub is_active: bool,
     pub tags: Vec<String>,
+}
+```
+
+### Go 출력
+```go
+type MyObject struct {
+	Name     string   `json:"name"`
+	Age      float64  `json:"age"`
+	Email    string   `json:"email"`
+	IsActive bool     `json:"isActive"`
+	Tags     []string `json:"tags"`
 }
 ```
 

@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { parseJson } = require('./json-to-object/src/parser');
+const { parseJson } = require('./src/parser');
 const generators = require('./src/generators');
 
 function activate(context) {
@@ -25,6 +25,7 @@ function activate(context) {
             { label: 'JavaScript', value: 'javascript' },
             { label: 'Python', value: 'python' },
             { label: 'Rust', value: 'rust' },
+            { label: 'Go', value: 'go' },
             { label: 'C', value: 'c' },
             { label: 'C++', value: 'cpp' },
             { label: 'Java', value: 'java' },
