@@ -1,0 +1,58 @@
+{
+  "name": "json-to-object",
+  "displayName": "JSON to Object Converter",
+  "description": "Convert JSON to type definitions for Python, Rust, C, C++, JavaScript, TypeScript, Java, and Kotlin",
+  "version": "0.0.1",
+  "publisher": "YOUR_PUBLISHER_NAME",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/json-to-object"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "json-to-object.convertJson",
+        "title": "Convert JSON to Object"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "json-to-object.convertJson",
+          "group": "navigation",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "16.x",
+    "eslint": "^8.41.0"
+  },
+  "keywords": [
+    "json",
+    "converter",
+    "typescript",
+    "python",
+    "rust",
+    "java",
+    "kotlin",
+    "code generator"
+  ],
+  "author": "YOUR_NAME",
+  "license": "MIT"
+}
