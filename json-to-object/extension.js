@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { parseJson } = require('./src/parser');
+const { parseJson } = require('./json-to-object/src/parser');
 const generators = require('./src/generators');
 
 function activate(context) {
