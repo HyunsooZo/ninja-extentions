@@ -32,18 +32,16 @@ function typeToJava(typeInfo) {
 }
 
 function getTypeForProperty(key, prop) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return toPascalCase(key);
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `List<${toPascalCase(key)}Item>`;
-            }
-            return typeToJava(prop.type);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return toPascalCase(key);
     }
-    return typeToJava(prop.type);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `List<${toPascalCase(key)}Item>`;
+        }
+        return typeToJava(prop.itemType);
+    }
+    return typeToJava(prop);
 }
 
 function generateClass(properties, name, isNested = false) {
@@ -89,24 +87,22 @@ function generateClass(properties, name, isNested = false) {
     return code;
 }
 
-function generateNestedClasses(properties) {
+function generateNestedClasses(properties, useInnerClass = true) {
     let nestedCode = '';
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = toPascalCase(key);
-                // Recursively generate nested classes first
-                nestedCode += generateNestedClasses(prop.type.properties);
-                nestedCode += generateClass(prop.type.properties, nestedName, true);
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            // Recursively generate nested classes first
+            nestedCode += generateNestedClasses(prop.properties, useInnerClass);
+            nestedCode += generateClass(prop.properties, nestedName, useInnerClass);
+            nestedCode += '\n\n';
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
+                nestedCode += generateNestedClasses(prop.itemType.properties, useInnerClass);
+                nestedCode += generateClass(prop.itemType.properties, nestedName, useInnerClass);
                 nestedCode += '\n\n';
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = toPascalCase(key) + 'Item';
-                    nestedCode += generateNestedClasses(prop.type.itemType.properties);
-                    nestedCode += generateClass(prop.type.itemType.properties, nestedName, true);
-                    nestedCode += '\n\n';
-                }
             }
         }
     }
@@ -114,10 +110,43 @@ function generateNestedClasses(properties) {
     return nestedCode;
 }
 
-function generate(parsedData, typeName) {
+function generateSeparateClasses(properties) {
+    let separateCode = '';
+
+    for (const [key, prop] of Object.entries(properties)) {
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            // Recursively generate nested classes first
+            separateCode += generateSeparateClasses(prop.properties);
+            separateCode += generateClass(prop.properties, nestedName, false);
+            separateCode += '\n\n';
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
+                separateCode += generateSeparateClasses(prop.itemType.properties);
+                separateCode += generateClass(prop.itemType.properties, nestedName, false);
+                separateCode += '\n\n';
+            }
+        }
+    }
+
+    return separateCode;
+}
+
+function generate(parsedData, typeName, options = {}) {
     const className = toPascalCase(typeName);
+    const useInnerClass = options.useInnerClass !== false; // 기본값 true
 
     let code = `import java.util.List;\n\n`;
+
+    if (!useInnerClass) {
+        // 별도 클래스로 생성 (메인 클래스 앞에)
+        const separateClasses = generateSeparateClasses(parsedData.properties);
+        if (separateClasses) {
+            code += separateClasses;
+        }
+    }
+
     code += `public class ${className} {\n`;
 
     const entries = Object.entries(parsedData.properties);
@@ -152,10 +181,12 @@ function generate(parsedData, typeName) {
         code += `    }\n\n`;
     }
 
-    // Generate nested static classes
-    const nestedClasses = generateNestedClasses(parsedData.properties);
-    if (nestedClasses) {
-        code += nestedClasses;
+    if (useInnerClass) {
+        // Generate nested static classes
+        const nestedClasses = generateNestedClasses(parsedData.properties, true);
+        if (nestedClasses) {
+            code += nestedClasses;
+        }
     }
 
     code += `}`;

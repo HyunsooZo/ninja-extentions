@@ -32,18 +32,16 @@ function typeToTypeScript(typeInfo) {
 }
 
 function getTypeForProperty(key, prop) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return toPascalCase(key);
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `${toPascalCase(key)}Item[]`;
-            }
-            return typeToTypeScript(prop.type);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return toPascalCase(key);
     }
-    return typeToTypeScript(prop.type);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `${toPascalCase(key)}Item[]`;
+        }
+        return typeToTypeScript(prop.itemType);
+    }
+    return typeToTypeScript(prop);
 }
 
 function generateInterface(properties, name, indent = '') {
@@ -63,18 +61,16 @@ function generateNestedInterfaces(properties, baseName) {
     let interfaces = [];
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = toPascalCase(key);
-                // Recursively generate nested interfaces first
-                interfaces.push(...generateNestedInterfaces(prop.type.properties, nestedName));
-                interfaces.push(generateInterface(prop.type.properties, nestedName));
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = toPascalCase(key) + 'Item';
-                    interfaces.push(...generateNestedInterfaces(prop.type.itemType.properties, nestedName));
-                    interfaces.push(generateInterface(prop.type.itemType.properties, nestedName));
-                }
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            // Recursively generate nested interfaces first
+            interfaces.push(...generateNestedInterfaces(prop.properties, nestedName));
+            interfaces.push(generateInterface(prop.properties, nestedName));
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
+                interfaces.push(...generateNestedInterfaces(prop.itemType.properties, nestedName));
+                interfaces.push(generateInterface(prop.itemType.properties, nestedName));
             }
         }
     }

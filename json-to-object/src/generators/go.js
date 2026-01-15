@@ -32,18 +32,16 @@ function typeToGo(typeInfo) {
 }
 
 function getTypeForProperty(key, prop) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return toPascalCase(key);
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `[]${toPascalCase(key)}Item`;
-            }
-            return typeToGo(prop.type);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return toPascalCase(key);
     }
-    return typeToGo(prop.type);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `[]${toPascalCase(key)}Item`;
+        }
+        return typeToGo(prop.itemType);
+    }
+    return typeToGo(prop);
 }
 
 function generateStruct(properties, name) {
@@ -72,20 +70,18 @@ function generateNestedStructs(properties) {
     let nestedCode = '';
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = toPascalCase(key);
-                // Recursively generate nested structs first
-                nestedCode += generateNestedStructs(prop.type.properties);
-                nestedCode += generateStruct(prop.type.properties, nestedName);
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            // Recursively generate nested structs first
+            nestedCode += generateNestedStructs(prop.properties);
+            nestedCode += generateStruct(prop.properties, nestedName);
+            nestedCode += '\n\n';
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
+                nestedCode += generateNestedStructs(prop.itemType.properties);
+                nestedCode += generateStruct(prop.itemType.properties, nestedName);
                 nestedCode += '\n\n';
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = toPascalCase(key) + 'Item';
-                    nestedCode += generateNestedStructs(prop.type.itemType.properties);
-                    nestedCode += generateStruct(prop.type.itemType.properties, nestedName);
-                    nestedCode += '\n\n';
-                }
             }
         }
     }

@@ -32,18 +32,16 @@ function typeToC(typeInfo) {
 }
 
 function getTypeForProperty(key, prop) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return `${toSnakeCase(key)}_t`;
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `${toSnakeCase(key)}_item_t*`;
-            }
-            return typeToC(prop.type);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return `${toSnakeCase(key)}_t`;
     }
-    return typeToC(prop.type);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `${toSnakeCase(key)}_item_t*`;
+        }
+        return typeToC(prop.itemType);
+    }
+    return typeToC(prop);
 }
 
 function generateStruct(properties, name) {
@@ -70,20 +68,18 @@ function generateNestedStructs(properties) {
     let nestedCode = '';
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = key;
-                // Recursively generate nested structs first
-                nestedCode += generateNestedStructs(prop.type.properties);
-                nestedCode += generateStruct(prop.type.properties, nestedName);
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = key;
+            // Recursively generate nested structs first
+            nestedCode += generateNestedStructs(prop.properties);
+            nestedCode += generateStruct(prop.properties, nestedName);
+            nestedCode += '\n\n';
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = key + '_item';
+                nestedCode += generateNestedStructs(prop.itemType.properties);
+                nestedCode += generateStruct(prop.itemType.properties, nestedName);
                 nestedCode += '\n\n';
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = key + '_item';
-                    nestedCode += generateNestedStructs(prop.type.itemType.properties);
-                    nestedCode += generateStruct(prop.type.itemType.properties, nestedName);
-                    nestedCode += '\n\n';
-                }
             }
         }
     }

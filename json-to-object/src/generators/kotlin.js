@@ -32,18 +32,16 @@ function typeToKotlin(typeInfo) {
 }
 
 function getTypeForProperty(key, prop) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return toPascalCase(key);
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `List<${toPascalCase(key)}Item>`;
-            }
-            return typeToKotlin(prop.type);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return toPascalCase(key);
     }
-    return typeToKotlin(prop.type);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `List<${toPascalCase(key)}Item>`;
+        }
+        return typeToKotlin(prop.itemType);
+    }
+    return typeToKotlin(prop);
 }
 
 function generateDataClass(properties, name) {
@@ -74,20 +72,18 @@ function generateNestedDataClasses(properties) {
     let nestedCode = '';
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = toPascalCase(key);
-                // Recursively generate nested data classes first
-                nestedCode += generateNestedDataClasses(prop.type.properties);
-                nestedCode += generateDataClass(prop.type.properties, nestedName);
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            // Recursively generate nested data classes first
+            nestedCode += generateNestedDataClasses(prop.properties);
+            nestedCode += generateDataClass(prop.properties, nestedName);
+            nestedCode += '\n\n';
+        } else if (prop.type === 'array' && prop.itemType) {
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
+                nestedCode += generateNestedDataClasses(prop.itemType.properties);
+                nestedCode += generateDataClass(prop.itemType.properties, nestedName);
                 nestedCode += '\n\n';
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = toPascalCase(key) + 'Item';
-                    nestedCode += generateNestedDataClasses(prop.type.itemType.properties);
-                    nestedCode += generateDataClass(prop.type.itemType.properties, nestedName);
-                    nestedCode += '\n\n';
-                }
             }
         }
     }

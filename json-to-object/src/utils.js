@@ -42,25 +42,23 @@ function collectNestedTypes(properties, baseName) {
     const nestedTypes = [];
 
     for (const [key, prop] of Object.entries(properties)) {
-        if (prop.type && typeof prop.type === 'object') {
-            if (prop.type.type === 'object' && prop.type.properties) {
-                const nestedName = toPascalCase(key);
+        if (prop.type === 'object' && prop.properties) {
+            const nestedName = toPascalCase(key);
+            nestedTypes.push({
+                name: nestedName,
+                properties: prop.properties
+            });
+            // Recursively collect deeper nested types
+            nestedTypes.push(...collectNestedTypes(prop.properties, nestedName));
+        } else if (prop.type === 'array' && prop.itemType) {
+            // Handle array of objects
+            if (prop.itemType.type === 'object' && prop.itemType.properties) {
+                const nestedName = toPascalCase(key) + 'Item';
                 nestedTypes.push({
                     name: nestedName,
-                    properties: prop.type.properties
+                    properties: prop.itemType.properties
                 });
-                // Recursively collect deeper nested types
-                nestedTypes.push(...collectNestedTypes(prop.type.properties, nestedName));
-            } else if (prop.type.type === 'array' && prop.type.itemType) {
-                // Handle array of objects
-                if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                    const nestedName = toPascalCase(key) + 'Item';
-                    nestedTypes.push({
-                        name: nestedName,
-                        properties: prop.type.itemType.properties
-                    });
-                    nestedTypes.push(...collectNestedTypes(prop.type.itemType.properties, nestedName));
-                }
+                nestedTypes.push(...collectNestedTypes(prop.itemType.properties, nestedName));
             }
         }
     }

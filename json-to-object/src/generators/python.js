@@ -33,18 +33,16 @@ function typeToPython(typeInfo, nestedTypes = []) {
 }
 
 function getTypeForProperty(key, prop, nestedTypes) {
-    if (prop.type && typeof prop.type === 'object') {
-        if (prop.type.type === 'object' && prop.type.properties) {
-            return toPascalCase(key);
-        }
-        if (prop.type.type === 'array' && prop.type.itemType) {
-            if (prop.type.itemType.type === 'object' && prop.type.itemType.properties) {
-                return `list[${toPascalCase(key)}Item]`;
-            }
-            return typeToPython(prop.type, nestedTypes);
-        }
+    if (prop.type === 'object' && prop.properties) {
+        return toPascalCase(key);
     }
-    return typeToPython(prop.type, nestedTypes);
+    if (prop.type === 'array' && prop.itemType) {
+        if (prop.itemType.type === 'object' && prop.itemType.properties) {
+            return `list[${toPascalCase(key)}Item]`;
+        }
+        return typeToPython(prop.itemType, nestedTypes);
+    }
+    return typeToPython(prop, nestedTypes);
 }
 
 function generateDataclass(properties, name, nestedTypes) {

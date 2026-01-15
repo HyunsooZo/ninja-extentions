@@ -59,7 +59,23 @@ function activate(context) {
                 return;
             }
 
-            const generatedCode = generator.generate(parsedData, typeName);
+            // 이너 클래스 옵션 (Java만 해당)
+            let options = {};
+            if (language.value === 'java') {
+                const innerClassChoice = await vscode.window.showQuickPick([
+                    { label: 'Inner Class (static nested)', value: true },
+                    { label: 'Separate Classes', value: false }
+                ], {
+                    placeHolder: 'How should nested objects be generated?'
+                });
+
+                if (!innerClassChoice) {
+                    return;
+                }
+                options.useInnerClass = innerClassChoice.value;
+            }
+
+            const generatedCode = generator.generate(parsedData, typeName, options);
 
             // 새 문서에 표시
             const doc = await vscode.workspace.openTextDocument({
