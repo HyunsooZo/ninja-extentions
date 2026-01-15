@@ -1,5 +1,11 @@
 const { toPascalCase, toCamelCase, collectNestedTypes } = require('../utils');
 
+/**
+ * @typedef {Object} KotlinOptions
+ * @property {boolean} [useJsonProperty] - @JsonProperty 어노테이션 추가
+ * @property {boolean} [multipleFiles] - 여러 파일로 분리
+ */
+
 function typeToKotlin(typeInfo) {
     if (typeof typeInfo === 'string') {
         switch (typeInfo) {
@@ -50,7 +56,8 @@ function getTypeForProperty(key, prop) {
     return typeToKotlin(prop);
 }
 
-function generateDataClass(properties, name) {
+function generateDataClass(properties, name, options = {}) {
+    const { useJsonProperty } = options;
     let code = `data class ${name}(\n`;
 
     const entries = Object.entries(properties);
@@ -66,6 +73,9 @@ function generateDataClass(properties, name) {
         const fieldName = toCamelCase(key);
         const comma = i < entries.length - 1 ? ',' : '';
 
+        if (useJsonProperty && key !== fieldName) {
+            code += `    @JsonProperty("${key}")\n`;
+        }
         code += `    val ${fieldName}: ${kotlinType}${comma}\n`;
     }
 
@@ -74,21 +84,21 @@ function generateDataClass(properties, name) {
     return code;
 }
 
-function generateNestedDataClasses(properties) {
+function generateNestedDataClasses(properties, options = {}) {
     let nestedCode = '';
 
     for (const [key, prop] of Object.entries(properties)) {
         if (prop.type === 'object' && prop.properties) {
             const nestedName = toPascalCase(key);
             // Recursively generate nested data classes first
-            nestedCode += generateNestedDataClasses(prop.properties);
-            nestedCode += generateDataClass(prop.properties, nestedName);
+            nestedCode += generateNestedDataClasses(prop.properties, options);
+            nestedCode += generateDataClass(prop.properties, nestedName, options);
             nestedCode += '\n\n';
         } else if (prop.type === 'array' && prop.itemType) {
             if (prop.itemType.type === 'object' && prop.itemType.properties) {
                 const nestedName = toPascalCase(key) + 'Item';
-                nestedCode += generateNestedDataClasses(prop.itemType.properties);
-                nestedCode += generateDataClass(prop.itemType.properties, nestedName);
+                nestedCode += generateNestedDataClasses(prop.itemType.properties, options);
+                nestedCode += generateDataClass(prop.itemType.properties, nestedName, options);
                 nestedCode += '\n\n';
             }
         }
@@ -97,9 +107,18 @@ function generateNestedDataClasses(properties) {
     return nestedCode;
 }
 
-function generateMultipleFiles(parsedData, typeName) {
+function buildImports(options = {}) {
+    let imports = '';
+    if (options.useJsonProperty) {
+        imports += 'import com.fasterxml.jackson.annotation.JsonProperty\n\n';
+    }
+    return imports;
+}
+
+function generateMultipleFiles(parsedData, typeName, options = {}) {
     const className = toPascalCase(typeName);
     const files = [];
+    const imports = buildImports(options);
 
     function collectFiles(properties) {
         for (const [key, prop] of Object.entries(properties)) {
@@ -108,7 +127,7 @@ function generateMultipleFiles(parsedData, typeName) {
                 collectFiles(prop.properties);
                 files.push({
                     filename: `${nestedName}.kt`,
-                    content: generateDataClass(prop.properties, nestedName),
+                    content: imports + generateDataClass(prop.properties, nestedName, options),
                     language: 'kotlin'
                 });
             } else if (prop.type === 'array' && prop.itemType) {
@@ -117,7 +136,7 @@ function generateMultipleFiles(parsedData, typeName) {
                     collectFiles(prop.itemType.properties);
                     files.push({
                         filename: `${nestedName}.kt`,
-                        content: generateDataClass(prop.itemType.properties, nestedName),
+                        content: imports + generateDataClass(prop.itemType.properties, nestedName, options),
                         language: 'kotlin'
                     });
                 }
@@ -129,7 +148,7 @@ function generateMultipleFiles(parsedData, typeName) {
 
     files.push({
         filename: `${className}.kt`,
-        content: generateDataClass(parsedData.properties, className),
+        content: imports + generateDataClass(parsedData.properties, className, options),
         language: 'kotlin'
     });
 
@@ -138,21 +157,21 @@ function generateMultipleFiles(parsedData, typeName) {
 
 function generate(parsedData, typeName, options = {}) {
     if (options.multipleFiles) {
-        return generateMultipleFiles(parsedData, typeName);
+        return generateMultipleFiles(parsedData, typeName, options);
     }
 
     const className = toPascalCase(typeName);
 
-    let code = '';
+    let code = buildImports(options);
 
     // Generate nested data classes first
-    const nestedClasses = generateNestedDataClasses(parsedData.properties);
+    const nestedClasses = generateNestedDataClasses(parsedData.properties, options);
     if (nestedClasses) {
         code += nestedClasses;
     }
 
     // Generate main data class
-    code += generateDataClass(parsedData.properties, className);
+    code += generateDataClass(parsedData.properties, className, options);
 
     return code;
 }

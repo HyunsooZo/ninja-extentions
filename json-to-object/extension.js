@@ -137,19 +137,77 @@ function activate(context) {
                 multipleFiles: outputMode.value === 'multiple'
             };
 
-            // 이너 클래스 옵션 (Java만 해당, single file 모드일 때만)
-            if (language.value === 'java' && !options.multipleFiles) {
-                const innerClassChoice = await vscode.window.showQuickPick([
-                    { label: 'Inner Class (static nested)', value: true },
-                    { label: 'Separate Classes', value: false }
+            // Java/Kotlin 공통: @JsonProperty 옵션
+            if (language.value === 'java' || language.value === 'kotlin') {
+                const jsonPropertyChoice = await vscode.window.showQuickPick([
+                    { label: 'No @JsonProperty', value: false },
+                    { label: 'Add @JsonProperty (for snake_case fields)', value: true }
                 ], {
-                    placeHolder: 'How should nested objects be generated?'
+                    placeHolder: 'Add @JsonProperty annotations?'
                 });
 
-                if (!innerClassChoice) {
+                if (!jsonPropertyChoice) {
                     return;
                 }
-                options.useInnerClass = innerClassChoice.value;
+                options.useJsonProperty = jsonPropertyChoice.value;
+            }
+
+            // Java 전용 옵션
+            if (language.value === 'java') {
+                // Lombok 옵션
+                const lombokChoice = await vscode.window.showQuickPick([
+                    { label: 'Plain POJO (no Lombok)', value: false },
+                    { label: 'Use Lombok (@Data, @AllArgsConstructor, @NoArgsConstructor)', value: true }
+                ], {
+                    placeHolder: 'Use Lombok annotations?'
+                });
+
+                if (!lombokChoice) {
+                    return;
+                }
+                options.useLombok = lombokChoice.value;
+
+                // Lombok이 아닐 때만 생성자/getter-setter 옵션 표시
+                if (!options.useLombok) {
+                    const constructorChoice = await vscode.window.showQuickPick([
+                        { label: 'No constructors', value: false },
+                        { label: 'Include constructors (NoArgs + AllArgs)', value: true }
+                    ], {
+                        placeHolder: 'Include constructors?'
+                    });
+
+                    if (!constructorChoice) {
+                        return;
+                    }
+                    options.includeConstructor = constructorChoice.value;
+
+                    const getterSetterChoice = await vscode.window.showQuickPick([
+                        { label: 'Include Getter/Setter', value: true },
+                        { label: 'Fields only (no Getter/Setter)', value: false }
+                    ], {
+                        placeHolder: 'Include Getter/Setter methods?'
+                    });
+
+                    if (!getterSetterChoice) {
+                        return;
+                    }
+                    options.includeGetterSetter = getterSetterChoice.value;
+                }
+
+                // 이너 클래스 옵션 (single file 모드일 때만)
+                if (!options.multipleFiles) {
+                    const innerClassChoice = await vscode.window.showQuickPick([
+                        { label: 'Inner Class (static nested)', value: true },
+                        { label: 'Separate Classes', value: false }
+                    ], {
+                        placeHolder: 'How should nested objects be generated?'
+                    });
+
+                    if (!innerClassChoice) {
+                        return;
+                    }
+                    options.useInnerClass = innerClassChoice.value;
+                }
             }
 
             const result = generator.generate(parsedData, typeName, options);
