@@ -174,7 +174,7 @@ npm install
 # Or package and install:
 npm install -g @vscode/vsce
 vsce package
-code --install-extension json-to-object-1.0.0.vsix
+code --install-extension json-to-object-1.0.1.vsix
 ```
 
 ## License
